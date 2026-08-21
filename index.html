@@ -763,15 +763,15 @@
       </svg>
     </div>
 
-    <div class="driver-card">
+    <div class="driver-card" id="card-irx">
       <div class="driver-top">
         <div>
-          <div class="driver-name">TVC:US02Y <span class="static-tag">Static</span></div>
-          <div class="driver-role">2Y yield — Fed policy gauge</div>
+          <div class="driver-name">13-Wk Bill <span class="live-tag">Live</span></div>
+          <div class="driver-role">2Y proxy (^IRX) — short-term Fed policy gauge</div>
         </div>
-        <span class="driver-vote bear">Watch</span>
+        <span class="driver-vote bear" id="vote-irx">Watch</span>
       </div>
-      <div class="driver-value">3.61% <span class="chg up">+0.02</span></div>
+      <div class="driver-value" id="value-irx">3.61% <span class="chg up" id="chg-irx">+0.02</span></div>
       <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
         <path class="fill" d="M0,22 L20,20 L40,21 L60,17 L80,18 L100,14 L120,15 L140,11 L160,13 L180,10 L200,12 L200,40 L0,40 Z"></path>
         <path class="line" d="M0,22 L20,20 L40,21 L60,17 L80,18 L100,14 L120,15 L140,11 L160,13 L180,10 L200,12"></path>
@@ -781,7 +781,7 @@
 
   </div>
   <p class="log-note" style="margin-top:-16px; margin-bottom:32px;">
-    <b>Live</b> tickers fetch real quotes from Yahoo Finance via a free public CORS relay when you click refresh. <b>Static</b> tickers (DFII10 real yield, US02Y) have no reliable free source that a browser can call directly, so they stay as manually-updated snapshot text. The relay is a third-party service with no uptime guarantee — if refresh fails, wait ~30 seconds and try again.
+    <b>Live</b> tickers fetch real quotes from Yahoo Finance via a free public CORS relay when you click refresh. The 4th card uses the 13-week Treasury bill (^IRX) as a short-maturity proxy — Yahoo has no working symbol for the literal 2-year yield, and this is the closest live substitute, not the same instrument. <b>DFII10</b> (real yield) has a real source (FRED) but FRED's API sends no CORS header, so a browser can't call it directly either — it stays a manual snapshot. The relay is a third-party service with no uptime guarantee — if refresh fails, wait ~30 seconds and try again.
   </p>
 
   <p class="section-label">Structural &amp; Flow Factors</p>
@@ -1041,7 +1041,7 @@
   </p>
 
   <footer>
-    Manual snapshot for Aug 20, 2026 PM (post-close read), except US10Y and DXY which can be refreshed live via the button above using Yahoo Finance data relayed through a free public CORS proxy (api.allorigins.win) — a third-party dependency with no uptime guarantee, not an official data feed. DFII10 and US02Y have no reliable free source a browser can call directly, so they remain manual snapshots. Refresh everything else on TradingView (<code>DFII10</code>, <code>TVC:US02Y</code>, <code>XAUUSD</code>); central-bank data quarterly from the World Gold Council's Gold Demand Trends report; ETF flows daily from SPDR's own holdings page; COT positioning weekly from the CFTC report (released Fridays for the prior Tuesday). Correlation logic is directional guidance, not a trading signal — any single factor, especially geopolitics, can override the rest without warning. The track record below is a live, unedited paper-trading log, not a historical backtest — every entry is a real forward prediction made before its outcome was known.
+    Manual snapshot for Aug 20, 2026 PM (post-close read), except US10Y, DXY, and the 13-week bill (2Y proxy) which can be refreshed live via the button above using Yahoo Finance data relayed through a free public CORS proxy (api.allorigins.win) — a third-party dependency with no uptime guarantee, not an official data feed. DFII10 (real yield) has a genuine free source — FRED — but FRED's API sends no CORS header, so a browser can't call it directly; it remains a manual snapshot. Refresh it on TradingView (<code>DFII10</code>) or <code>fred.stlouisfed.org/series/DFII10</code>; refresh gold on <code>XAUUSD</code>; central-bank data quarterly from the World Gold Council's Gold Demand Trends report; ETF flows daily from SPDR's own holdings page; COT positioning weekly from the CFTC report (released Fridays for the prior Tuesday). Correlation logic is directional guidance, not a trading signal — any single factor, especially geopolitics, can override the rest without warning. The track record below is a live, unedited paper-trading log, not a historical backtest — every entry is a real forward prediction made before its outcome was known.
   </footer>
 
 </div>
@@ -1052,8 +1052,9 @@
   var YAHOO = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 
   var SYMBOLS = {
-    us10y: { symbol: '%5ETNX', label: 'is a % yield already' },
-    dxy:   { symbol: 'DX-Y.NYB', label: 'index points' }
+    us10y: { symbol: '%5ETNX' },
+    dxy:   { symbol: 'DX-Y.NYB' },
+    irx:   { symbol: '%5EIRX' }
   };
 
   function setStatus(text, cls) {
@@ -1101,36 +1102,46 @@
     voteEl.className = 'driver-vote ' + (rising ? 'bear' : 'bull');
   }
 
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function pctFormatter(quote, delta, pct) {
+    return { value: quote.price.toFixed(2), change: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' };
+  }
+  function yieldFormatter(quote, delta) {
+    return { value: quote.price.toFixed(3) + '%', change: (delta >= 0 ? '+' : '') + delta.toFixed(3) };
+  }
+
   window.refreshLiveTickers = function () {
     setBtnBusy(true);
     setStatus('Fetching live quotes…');
 
-    // Sequential, not parallel — the free proxy rate-limits aggressively on bursts
+    var ok = [];
+    var failed = [];
+
+    // Sequential, not parallel, with spacing — the free proxy rate-limits aggressively on bursts.
+    // Each step is isolated so one failure doesn't erase cards that already updated.
     fetchQuote(SYMBOLS.us10y.symbol)
-      .then(function (q) {
-        applyQuote('us10y', q, function (quote, delta) {
-          return {
-            value: quote.price.toFixed(3) + '%',
-            change: (delta >= 0 ? '+' : '') + delta.toFixed(3)
-          };
-        });
-        return new Promise(function (resolve) { setTimeout(resolve, 1500); });
-      })
+      .then(function (q) { applyQuote('us10y', q, yieldFormatter); ok.push('US10Y'); })
+      .catch(function () { failed.push('US10Y'); })
+      .then(function () { return wait(1500); })
       .then(function () { return fetchQuote(SYMBOLS.dxy.symbol); })
-      .then(function (q) {
-        applyQuote('dxy', q, function (quote, delta, pct) {
-          return {
-            value: quote.price.toFixed(2),
-            change: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%'
-          };
-        });
+      .then(function (q) { applyQuote('dxy', q, pctFormatter); ok.push('DXY'); })
+      .catch(function () { failed.push('DXY'); })
+      .then(function () { return wait(1500); })
+      .then(function () { return fetchQuote(SYMBOLS.irx.symbol); })
+      .then(function (q) { applyQuote('irx', q, yieldFormatter); ok.push('13-Wk Bill'); })
+      .catch(function () { failed.push('13-Wk Bill'); })
+      .then(function () {
         var now = new Date();
-        setStatus('Refreshed live at ' + now.toLocaleTimeString() + ' — US10Y & DXY only', 'ok');
-      })
-      .catch(function (err) {
-        setStatus('Refresh failed (proxy may be rate-limited) — try again in ~30s. ' + err.message, 'err');
-      })
-      .finally(function () {
+        if (ok.length && !failed.length) {
+          setStatus('Refreshed live at ' + now.toLocaleTimeString() + ' — ' + ok.join(', '), 'ok');
+        } else if (ok.length && failed.length) {
+          setStatus('Partial refresh at ' + now.toLocaleTimeString() + ' — got ' + ok.join(', ') + '; ' + failed.join(', ') + ' failed (proxy limit?), try again shortly', 'err');
+        } else {
+          setStatus('Refresh failed — proxy likely rate-limited, try again in ~30s', 'err');
+        }
         setBtnBusy(false);
       });
   };
