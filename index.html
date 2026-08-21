@@ -1052,12 +1052,17 @@
   var PROXY = 'https://api.allorigins.win/raw?url=';
   var YAHOO = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 
-  var SYMBOLS = {
-    us10y: { symbol: '%5ETNX' },
-    dxy:   { symbol: 'DX-Y.NYB' },
-    irx:   { symbol: '%5EIRX' },
-    gold:  { symbol: 'GC%3DF' }
-  };
+  var TICKERS = [
+    { id: 'us10y', symbol: '%5ETNX',    label: 'US10Y',       apply: function (q) { applyQuote('us10y', q, yieldFormatter); } },
+    { id: 'dxy',   symbol: 'DX-Y.NYB',  label: 'DXY',         apply: function (q) { applyQuote('dxy', q, pctFormatter); } },
+    { id: 'irx',   symbol: '%5EIRX',    label: '13-Wk Bill',  apply: function (q) { applyQuote('irx', q, yieldFormatter); } },
+    { id: 'gold',  symbol: 'GC%3DF',    label: 'Gold',        apply: applyGold }
+  ];
+
+  // Tracks which tickers still need a successful fetch. Starts as "all of them";
+  // a partial failure shrinks it so the next tap only retries what's missing,
+  // instead of re-hitting the free proxy for tickers that already succeeded.
+  var pendingIds = TICKERS.map(function (t) { return t.id; });
 
   // The written verdict/composite-read text was authored about this snapshot price.
   // If the live price drifts far from it, say so rather than let the numbers silently disagree.
@@ -1147,40 +1152,43 @@
   }
 
   window.refreshLiveTickers = function () {
+    var toFetch = TICKERS.filter(function (t) { return pendingIds.indexOf(t.id) !== -1; });
+    if (!toFetch.length) {
+      pendingIds = TICKERS.map(function (t) { return t.id; }); // everything succeeded last time — refresh all again
+      toFetch = TICKERS.slice();
+    }
+
     setBtnBusy(true);
-    setStatus('Fetching live quotes…');
+    var isRetry = toFetch.length < TICKERS.length;
+    setStatus(isRetry ? 'Retrying ' + toFetch.map(function (t) { return t.label; }).join(', ') + '…' : 'Fetching live quotes…');
 
     var ok = [];
-    var failed = [];
+    var stillFailed = [];
 
     // Sequential, not parallel, with spacing — the free proxy rate-limits aggressively on bursts.
-    // Each step is isolated so one failure doesn't erase cards that already updated.
-    fetchQuote(SYMBOLS.us10y.symbol)
-      .then(function (q) { applyQuote('us10y', q, yieldFormatter); ok.push('US10Y'); })
-      .catch(function () { failed.push('US10Y'); })
-      .then(function () { return wait(1500); })
-      .then(function () { return fetchQuote(SYMBOLS.dxy.symbol); })
-      .then(function (q) { applyQuote('dxy', q, pctFormatter); ok.push('DXY'); })
-      .catch(function () { failed.push('DXY'); })
-      .then(function () { return wait(1500); })
-      .then(function () { return fetchQuote(SYMBOLS.irx.symbol); })
-      .then(function (q) { applyQuote('irx', q, yieldFormatter); ok.push('13-Wk Bill'); })
-      .catch(function () { failed.push('13-Wk Bill'); })
-      .then(function () { return wait(1500); })
-      .then(function () { return fetchQuote(SYMBOLS.gold.symbol); })
-      .then(function (q) { applyGold(q); ok.push('Gold'); })
-      .catch(function () { failed.push('Gold'); })
-      .then(function () {
-        var now = new Date();
-        if (ok.length && !failed.length) {
-          setStatus('Refreshed live at ' + now.toLocaleTimeString() + ' — ' + ok.join(', '), 'ok');
-        } else if (ok.length && failed.length) {
-          setStatus('Partial refresh at ' + now.toLocaleTimeString() + ' — got ' + ok.join(', ') + '; ' + failed.join(', ') + ' failed (proxy limit?), try again shortly', 'err');
-        } else {
-          setStatus('Refresh failed — proxy likely rate-limited, try again in ~30s', 'err');
-        }
-        setBtnBusy(false);
-      });
+    // Each step is isolated so one failure doesn't block or erase the others.
+    var chain = Promise.resolve();
+    toFetch.forEach(function (ticker, i) {
+      if (i > 0) chain = chain.then(function () { return wait(1500); });
+      chain = chain
+        .then(function () { return fetchQuote(ticker.symbol); })
+        .then(function (q) { ticker.apply(q); ok.push(ticker.label); })
+        .catch(function () { stillFailed.push(ticker.id); });
+    });
+
+    chain.then(function () {
+      pendingIds = stillFailed; // next tap retries only these, if any
+      var now = new Date();
+      if (ok.length && !stillFailed.length) {
+        setStatus('Refreshed live at ' + now.toLocaleTimeString() + ' — ' + ok.join(', '), 'ok');
+      } else if (ok.length && stillFailed.length) {
+        var failedLabels = TICKERS.filter(function (t) { return stillFailed.indexOf(t.id) !== -1; }).map(function (t) { return t.label; });
+        setStatus('Partial refresh at ' + now.toLocaleTimeString() + ' — got ' + ok.join(', ') + '; ' + failedLabels.join(', ') + ' still failing (proxy limit?) — tap refresh again to retry just those', 'err');
+      } else {
+        setStatus('Refresh failed — proxy likely rate-limited, wait ~30s and tap again', 'err');
+      }
+      setBtnBusy(false);
+    });
   };
 })();
 </script>
