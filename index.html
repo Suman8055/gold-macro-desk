@@ -683,17 +683,18 @@
   </div>
 
   <div class="hero">
-    <div class="price-card">
-      <p class="eyebrow">Gold Spot (XAU/USD)</p>
+    <div class="price-card" id="card-gold">
+      <p class="eyebrow">Gold Spot (XAU/USD) <span class="live-tag" id="gold-live-tag">Live · futures proxy</span></p>
       <div class="price-figure">
-        <span class="num">$4,534</span>
-        <span class="delta up">+0.40% today</span>
+        <span class="num" id="value-gold">$4,534</span>
+        <span class="delta up" id="chg-gold">+0.40% today</span>
       </div>
       <div class="price-meta">
         <span>1M <b>+10.8%</b></span>
         <span>1Y <b>+35.3%</b></span>
-        <span>On course for a 3rd straight weekly gain</span>
+        <span id="gold-meta-note">On course for a 3rd straight weekly gain</span>
       </div>
+      <p class="factor-source" id="gold-drift-note" style="display:none; margin-top:10px; padding-top:8px; border-top:1px dashed var(--hair);"></p>
     </div>
     <div class="verdict-card">
       <p class="eyebrow">Composite Read</p>
@@ -1041,7 +1042,7 @@
   </p>
 
   <footer>
-    Manual snapshot for Aug 20, 2026 PM (post-close read), except US10Y, DXY, and the 13-week bill (2Y proxy) which can be refreshed live via the button above using Yahoo Finance data relayed through a free public CORS proxy (api.allorigins.win) — a third-party dependency with no uptime guarantee, not an official data feed. DFII10 (real yield) has a genuine free source — FRED — but FRED's API sends no CORS header, so a browser can't call it directly; it remains a manual snapshot. Refresh it on TradingView (<code>DFII10</code>) or <code>fred.stlouisfed.org/series/DFII10</code>; refresh gold on <code>XAUUSD</code>; central-bank data quarterly from the World Gold Council's Gold Demand Trends report; ETF flows daily from SPDR's own holdings page; COT positioning weekly from the CFTC report (released Fridays for the prior Tuesday). Correlation logic is directional guidance, not a trading signal — any single factor, especially geopolitics, can override the rest without warning. The track record below is a live, unedited paper-trading log, not a historical backtest — every entry is a real forward prediction made before its outcome was known.
+    Manual snapshot for Aug 20, 2026 PM (post-close read), except gold spot, US10Y, DXY, and the 13-week bill (2Y proxy), which can all be refreshed live via the button above using Yahoo Finance data relayed through a free public CORS proxy (api.allorigins.win) — a third-party dependency with no uptime guarantee, not an official data feed. The live gold price is COMEX futures (GC=F), a close but not identical tracker of literal XAU/USD spot. DFII10 (real yield) has a genuine free source — FRED — but FRED's API sends no CORS header, so a browser can't call it directly; it remains a manual snapshot, refreshable on TradingView (<code>DFII10</code>) or <code>fred.stlouisfed.org/series/DFII10</code>. Note that the composite-read verdict text was written about the gold price at the time of the last manual snapshot — if the live price drifts more than 1% from that, the page flags it rather than letting the two silently disagree. Central-bank data refreshes quarterly from the World Gold Council's Gold Demand Trends report; ETF flows daily from SPDR's own holdings page; COT positioning weekly from the CFTC report (released Fridays for the prior Tuesday). Correlation logic is directional guidance, not a trading signal — any single factor, especially geopolitics, can override the rest without warning. The track record below is a live, unedited paper-trading log, not a historical backtest — every entry is a real forward prediction made before its outcome was known.
   </footer>
 
 </div>
@@ -1054,8 +1055,14 @@
   var SYMBOLS = {
     us10y: { symbol: '%5ETNX' },
     dxy:   { symbol: 'DX-Y.NYB' },
-    irx:   { symbol: '%5EIRX' }
+    irx:   { symbol: '%5EIRX' },
+    gold:  { symbol: 'GC%3DF' }
   };
+
+  // The written verdict/composite-read text was authored about this snapshot price.
+  // If the live price drifts far from it, say so rather than let the numbers silently disagree.
+  var VERDICT_SNAPSHOT_PRICE = 4533.85;
+  var DRIFT_THRESHOLD_PCT = 1.0;
 
   function setStatus(text, cls) {
     var el = document.getElementById('refresh-status');
@@ -1113,6 +1120,32 @@
     return { value: quote.price.toFixed(3) + '%', change: (delta >= 0 ? '+' : '') + delta.toFixed(3) };
   }
 
+  function applyGold(quote) {
+    var valueEl = document.getElementById('value-gold');
+    var chgEl = document.getElementById('chg-gold');
+    var driftEl = document.getElementById('gold-drift-note');
+    if (!valueEl || !chgEl) return;
+
+    var delta = quote.price - quote.prevClose;
+    var pctDelta = quote.prevClose ? (delta / quote.prevClose) * 100 : 0;
+    var rising = delta >= 0;
+
+    valueEl.textContent = '$' + quote.price.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    chgEl.textContent = (pctDelta >= 0 ? '+' : '') + pctDelta.toFixed(2) + '% today';
+    chgEl.className = 'delta ' + (rising ? 'up' : 'down');
+
+    var driftPct = VERDICT_SNAPSHOT_PRICE ? Math.abs((quote.price - VERDICT_SNAPSHOT_PRICE) / VERDICT_SNAPSHOT_PRICE) * 100 : 0;
+    if (driftEl) {
+      if (driftPct >= DRIFT_THRESHOLD_PCT) {
+        driftEl.style.display = 'block';
+        driftEl.innerHTML = '⚠ Live price has moved ' + driftPct.toFixed(1) + '% from $' + VERDICT_SNAPSHOT_PRICE.toLocaleString('en-US') +
+          ', the snapshot the composite read alongside it was written about. The verdict text may no longer reflect current conditions — treat it as the last written analysis, not a live call.';
+      } else {
+        driftEl.style.display = 'none';
+      }
+    }
+  }
+
   window.refreshLiveTickers = function () {
     setBtnBusy(true);
     setStatus('Fetching live quotes…');
@@ -1133,6 +1166,10 @@
       .then(function () { return fetchQuote(SYMBOLS.irx.symbol); })
       .then(function (q) { applyQuote('irx', q, yieldFormatter); ok.push('13-Wk Bill'); })
       .catch(function () { failed.push('13-Wk Bill'); })
+      .then(function () { return wait(1500); })
+      .then(function () { return fetchQuote(SYMBOLS.gold.symbol); })
+      .then(function (q) { applyGold(q); ok.push('Gold'); })
+      .catch(function () { failed.push('Gold'); })
       .then(function () {
         var now = new Date();
         if (ok.length && !failed.length) {
