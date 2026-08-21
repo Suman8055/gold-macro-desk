@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Macro Desk — XAU/USD Institutional Driver Tracker</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ground:      #f7f4ea;
+    --surface:     #fdfcf6;
+    --surface-2:   #f1ecdc;
+    --ink:         #171509;
+    --ink-2:       #55503f;
+    --ink-muted:   #8b8570;
+    --hair:        #e2dcc4;
+    --hair-strong: #c9c0a0;
+    --accent:      #a17d14;
+    --accent-ink:  #6e5606;
+    --bull:        #2f7d4f;
+    --bull-bg:     #e4efe2;
+    --bear:        #a3402f;
+    --bear-bg:     #f4e5df;
+    --neutral:     #8a7a3f;
+    --neutral-bg:  #efe9d4;
+    --shadow:      0 1px 2px rgba(23,21,9,0.06), 0 8px 24px -12px rgba(23,21,9,0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground:      #14130d;
+      --surface:     #1c1a12;
+      --surface-2:   #232014;
+      --ink:         #f3efdf;
+      --ink-2:       #c4bda2;
+      --ink-muted:   #8c856c;
+      --hair:        #322d1e;
+      --hair-strong: #443d27;
+      --accent:      #dcb544;
+      --accent-ink:  #f0cf6b;
+      --bull:        #6fbf85;
+      --bull-bg:     #1e2b1f;
+      --bear:        #e08a72;
+      --bear-bg:     #2e2019;
+      --neutral:     #d0bd7a;
+      --neutral-bg:  #2b2717;
+      --shadow:      0 1px 2px rgba(0,0,0,0.4), 0 12px 32px -16px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground:      #14130d;
+    --surface:     #1c1a12;
+    --surface-2:   #232014;
+    --ink:         #f3efdf;
+    --ink-2:       #c4bda2;
+    --ink-muted:   #8c856c;
+    --hair:        #322d1e;
+    --hair-strong: #443d27;
+    --accent:      #dcb544;
+    --accent-ink:  #f0cf6b;
+    --bull:        #6fbf85;
+    --bull-bg:     #1e2b1f;
+    --bear:        #e08a72;
+    --bear-bg:     #2e2019;
+    --neutral:     #d0bd7a;
+    --neutral-bg:  #2b2717;
+    --shadow:      0 1px 2px rgba(0,0,0,0.4), 0 12px 32px -16px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ---- Masthead ---- */
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--hair-strong);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .masthead-title {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .masthead-sub {
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+  .masthead-date {
+    font-size: 0.8rem;
+    color: var(--ink-2);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .masthead-date .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ---- Hero: price + verdict ---- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 640px) { .hero { grid-template-columns: 1fr; } }
+
+  .price-card, .verdict-card {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 24px 26px;
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+  .price-figure {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .price-figure .num {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 2.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--accent-ink);
+  }
+  .price-figure .delta {
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .delta.up { color: var(--bull); background: var(--bull-bg); }
+  .delta.down { color: var(--bear); background: var(--bear-bg); }
+  .price-meta {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--ink-2);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .price-meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .verdict-card { display: flex; flex-direction: column; }
+  .verdict-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin-top: 2px;
+  }
+  .verdict-badge.bullish { color: var(--bull); background: var(--bull-bg); }
+  .verdict-badge.bearish { color: var(--bear); background: var(--bear-bg); }
+  .verdict-badge.mixed   { color: var(--neutral); background: var(--neutral-bg); }
+  .verdict-note {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .verdict-score {
+    margin-top: auto;
+    padding-top: 14px;
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ---- Driver ticker strip ---- */
+  .section-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    margin: 0 0 12px;
+    padding-top: 4px;
+  }
+  .drivers {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 880px) { .drivers { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .drivers { grid-template-columns: 1fr; } }
+
+  .driver-card {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    padding: 16px 18px 14px;
+    box-shadow: var(--shadow);
+  }
+  .driver-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .driver-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .driver-role {
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+  .driver-vote {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .driver-vote.bull { color: var(--bull); background: var(--bull-bg); }
+  .driver-vote.bear { color: var(--bear); background: var(--bear-bg); }
+  .driver-value {
+    font-family: Georgia, serif;
+    font-size: 1.7rem;
+    font-variant-numeric: tabular-nums;
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .driver-value .chg {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .chg.up { color: var(--bear); }   /* yields/DXY rising = bearish for gold, shown in bear color */
+  .chg.down { color: var(--bull); }
+  .spark {
+    display: block;
+    margin-top: 10px;
+    width: 100%;
+    height: 32px;
+  }
+  .spark path.fill { fill: var(--accent); opacity: 0.08; }
+  .spark path.line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  .spark circle { fill: var(--accent); }
+
+  /* ---- Structural factor cards (non-tick data) ---- */
+  .factors {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 720px) { .factors { grid-template-columns: 1fr; } }
+
+  .factor-card {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .factor-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .factor-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .factor-role {
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+  .factor-reading {
+    font-size: 0.85rem;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .factor-reading b {
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .factor-source {
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+    padding-top: 8px;
+    border-top: 1px dashed var(--hair);
+    margin-top: auto;
+  }
+  .factor-source code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+  }
+
+  /* ---- Logic table ---- */
+  .logic-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    margin-bottom: 32px;
+  }
+  table.logic {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 640px;
+  }
+  table.logic caption {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    padding: 14px 18px 0;
+  }
+  table.logic th, table.logic td {
+    padding: 11px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--hair);
+  }
+  table.logic thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--hair-strong);
+  }
+  table.logic tbody tr:last-child td { border-bottom: none; }
+  table.logic td.mono { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .tag.bull { color: var(--bull); background: var(--bull-bg); }
+  .tag.bear { color: var(--bear); background: var(--bear-bg); }
+
+  /* ---- Rule reference ---- */
+  .rules {
+    background: var(--surface-2);
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+  }
+  .rules h2 {
+    font-size: 0.95rem;
+    margin: 0 0 12px;
+    font-weight: 700;
+  }
+  .rules ol {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 10px;
+  }
+  .rules li {
+    font-size: 0.85rem;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .rules li b { color: var(--ink); }
+  .rules .tip {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--hair-strong);
+    font-size: 0.82rem;
+    color: var(--accent-ink);
+    line-height: 1.5;
+  }
+
+  footer {
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    padding-top: 16px;
+    border-top: 1px solid var(--hair);
+  }
+  footer a { color: var(--ink-muted); }
+
+  /* ---- Scoreboard ---- */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) { .scoreboard { grid-template-columns: repeat(2, 1fr); } }
+
+  .score-tile {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .score-tile .n {
+    font-family: Georgia, serif;
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-ink);
+    line-height: 1;
+  }
+  .score-tile .lbl {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+  .score-tile.pending .n { color: var(--ink-muted); }
+
+  .factor-hitrate {
+    overflow-x: auto;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    margin-bottom: 32px;
+  }
+  table.hitrate {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    min-width: 560px;
+  }
+  table.hitrate caption {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    padding: 14px 18px 4px;
+  }
+  table.hitrate th, table.hitrate td {
+    padding: 10px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--hair);
+  }
+  table.hitrate thead th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--hair-strong);
+  }
+  table.hitrate tbody tr:last-child td { border-bottom: none; }
+  table.hitrate td.mono, table.hitrate th.mono { font-variant-numeric: tabular-nums; }
+  .bar-track {
+    display: inline-block;
+    width: 80px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface-2);
+    overflow: hidden;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  .bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .weight-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+  }
+  .weight-tag.up { color: var(--bull); background: var(--bull-bg); }
+  .weight-tag.down { color: var(--bear); background: var(--bear-bg); }
+
+  .log-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  table.log {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    min-width: 760px;
+  }
+  table.log caption {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    padding: 14px 18px 4px;
+  }
+  table.log th, table.log td {
+    padding: 9px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--hair);
+    white-space: nowrap;
+  }
+  table.log thead th {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--hair-strong);
+  }
+  table.log tbody tr:last-child td { border-bottom: none; }
+  table.log td.mono { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .result-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .result-pill.hit { color: var(--bull); background: var(--bull-bg); }
+  .result-pill.miss { color: var(--bear); background: var(--bear-bg); }
+  .result-pill.pending { color: var(--ink-muted); background: var(--surface-2); }
+
+  .log-note {
+    font-size: 0.78rem;
+    color: var(--ink-2);
+    line-height: 1.55;
+    margin-bottom: 32px;
+  }
+  .log-note b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <p class="masthead-title">Gold Macro Desk</p>
+      <p class="masthead-sub">XAU/USD Driver Tracker — Rates, Dollar, Flows &amp; Risk</p>
+    </div>
+    <div class="masthead-date">
+      Thursday, August 20, 2026 · PM (post-close)
+      <div class="live"><span class="dot"></span> Snapshot, not live-streamed</div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="price-card">
+      <p class="eyebrow">Gold Spot (XAU/USD)</p>
+      <div class="price-figure">
+        <span class="num">$4,534</span>
+        <span class="delta up">+0.40% today</span>
+      </div>
+      <div class="price-meta">
+        <span>1M <b>+10.8%</b></span>
+        <span>1Y <b>+35.3%</b></span>
+        <span>On course for a 3rd straight weekly gain</span>
+      </div>
+    </div>
+    <div class="verdict-card">
+      <p class="eyebrow">Composite Read</p>
+      <span class="verdict-badge mixed">◆ Mixed, safe-haven led</span>
+      <p class="verdict-note">The rate story flipped since this morning — hawkish FOMC minutes pushed US10Y back up toward 4.71%, which should be a headwind. Gold rose anyway, because Iran-related safe-haven demand overrode the rate math. This is exactly the "geopolitics can override the model" case flagged in the rules below — a real-time example, not a hypothetical.</p>
+      <p class="verdict-score">Score: 2 bullish · 2 caution · 1 mixed</p>
+    </div>
+  </div>
+
+  <p class="section-label">Rate &amp; Currency Tickers</p>
+  <div class="drivers">
+
+    <div class="driver-card">
+      <div class="driver-top">
+        <div>
+          <div class="driver-name">DFII10</div>
+          <div class="driver-role">10Y TIPS — real rate, the deepest driver</div>
+        </div>
+        <span class="driver-vote bull">Bullish</span>
+      </div>
+      <div class="driver-value">1.99% <span class="chg down">from 2.24% Apr</span></div>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+        <path class="fill" d="M0,6 L20,9 L40,8 L60,13 L80,12 L100,18 L120,16 L140,22 L160,19 L180,25 L200,23 L200,40 L0,40 Z"></path>
+        <path class="line" d="M0,6 L20,9 L40,8 L60,13 L80,12 L100,18 L120,16 L140,22 L160,19 L180,25 L200,23"></path>
+        <circle cx="200" cy="23" r="2.5"></circle>
+      </svg>
+    </div>
+
+    <div class="driver-card">
+      <div class="driver-top">
+        <div>
+          <div class="driver-name">TVC:US10Y</div>
+          <div class="driver-role">10Y nominal yield — long-term rate gauge</div>
+        </div>
+        <span class="driver-vote bear">Bearish</span>
+      </div>
+      <div class="driver-value">4.71% <span class="chg up">+0.06</span></div>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+        <path class="fill" d="M0,24 L20,22 L40,23 L60,18 L80,20 L100,15 L120,17 L140,12 L160,14 L180,9 L200,7 L200,40 L0,40 Z"></path>
+        <path class="line" d="M0,24 L20,22 L40,23 L60,18 L80,20 L100,15 L120,17 L140,12 L160,14 L180,9 L200,7"></path>
+        <circle cx="200" cy="7" r="2.5"></circle>
+      </svg>
+    </div>
+
+    <div class="driver-card">
+      <div class="driver-top">
+        <div>
+          <div class="driver-name">TVC:DXY</div>
+          <div class="driver-role">Dollar index — pricing currency</div>
+        </div>
+        <span class="driver-vote bull">Bullish</span>
+      </div>
+      <div class="driver-value">98.76 <span class="chg down">−0.07%</span></div>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+        <path class="fill" d="M0,8 L20,12 L40,10 L60,16 L80,15 L100,21 L120,19 L140,25 L160,23 L180,29 L200,26 L200,40 L0,40 Z"></path>
+        <path class="line" d="M0,8 L20,12 L40,10 L60,16 L80,15 L100,21 L120,19 L140,25 L160,23 L180,29 L200,26"></path>
+        <circle cx="200" cy="26" r="2.5"></circle>
+      </svg>
+    </div>
+
+    <div class="driver-card">
+      <div class="driver-top">
+        <div>
+          <div class="driver-name">TVC:US02Y</div>
+          <div class="driver-role">2Y yield — Fed policy gauge</div>
+        </div>
+        <span class="driver-vote bear">Watch</span>
+      </div>
+      <div class="driver-value">3.61% <span class="chg up">+0.02</span></div>
+      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+        <path class="fill" d="M0,22 L20,20 L40,21 L60,17 L80,18 L100,14 L120,15 L140,11 L160,13 L180,10 L200,12 L200,40 L0,40 Z"></path>
+        <path class="line" d="M0,22 L20,20 L40,21 L60,17 L80,18 L100,14 L120,15 L140,11 L160,13 L180,10 L200,12"></path>
+        <circle cx="200" cy="12" r="2.5"></circle>
+      </svg>
+    </div>
+
+  </div>
+
+  <p class="section-label">Structural &amp; Flow Factors</p>
+  <div class="factors">
+
+    <div class="factor-card">
+      <div class="factor-top">
+        <div>
+          <div class="factor-name">Central Bank Demand</div>
+          <div class="factor-role">Sovereign reserve diversification</div>
+        </div>
+        <span class="driver-vote bull">Bullish</span>
+      </div>
+      <p class="factor-reading">Record <b>289t</b> bought in Q2 2026 (+74% YoY), led by Poland (+51t) and China (+33t). Poland is building toward a 700t target on NATO eastern-flank security concerns — a price-insensitive buyer, not a trade.</p>
+      <p class="factor-source">Source: <code>World Gold Council</code>, quarterly · Q2 2026</p>
+    </div>
+
+    <div class="factor-card">
+      <div class="factor-top">
+        <div>
+          <div class="factor-name">Geopolitical Risk</div>
+          <div class="factor-role">Safe-haven demand</div>
+        </div>
+        <span class="driver-vote bull">Bullish</span>
+      </div>
+      <p class="factor-reading">Sharply higher — Trump threatened "the most crushing economic operation" against Iran, and July 28–29 FOMC minutes turned hawkish (officials flagged a possible hike absent inflation progress). Gold rose <b>+0.40%</b> even as US10Y jumped, confirming safe-haven flow is currently the dominant force overriding the rate model.</p>
+      <p class="factor-source">Source: headline risk, checked qualitatively each session</p>
+    </div>
+
+    <div class="factor-card">
+      <div class="factor-top">
+        <div>
+          <div class="factor-name">ETF Flows (GLD)</div>
+          <div class="factor-role">Institutional / retail investment demand</div>
+        </div>
+        <span class="driver-vote bull">Bullish</span>
+      </div>
+      <p class="factor-reading">Sustained net creations through August — <b>+$1.0B</b> on Aug 18 alone, <b>+$636.9M</b> on Aug 7. No notable outflow days reported this month; demand is broadening beyond the futures market.</p>
+      <p class="factor-source">Source: <code>GLD</code> / <code>IAU</code> daily creation-redemption data</p>
+    </div>
+
+    <div class="factor-card">
+      <div class="factor-top">
+        <div>
+          <div class="factor-name">COT Positioning</div>
+          <div class="factor-role">CFTC managed-money futures crowding</div>
+        </div>
+        <span class="driver-vote bear">Caution</span>
+      </div>
+      <p class="factor-reading">Managed money net long <b>130,766</b> contracts, positioning at the <b>100th percentile</b> of its 6-month range. Extremely crowded longs don't flip the trend, but they raise the odds of a sharp, fast liquidation-driven pullback.</p>
+      <p class="factor-source">Source: <code>CFTC Commitments of Traders</code>, weekly (as of Aug 11, 2026)</p>
+    </div>
+
+  </div>
+
+  <div class="logic-wrap">
+    <table class="logic">
+      <caption>Signal Logic — how each reading votes</caption>
+      <thead>
+        <tr>
+          <th>Factor</th>
+          <th>Current reading</th>
+          <th>Rule applied</th>
+          <th>Vote for gold</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Real rate (DFII10)</td>
+          <td class="mono">≈1.99%, trending down</td>
+          <td>Falling real yield lowers gold's opportunity cost most directly of any single metric</td>
+          <td><span class="tag bull">Bullish</span></td>
+        </tr>
+        <tr>
+          <td>US10Y</td>
+          <td class="mono">4.64% → 4.71% (+6bp)</td>
+          <td>Reversed higher on hawkish FOMC minutes; rising long yield normally raises gold's opportunity cost</td>
+          <td><span class="tag bear">Bearish</span></td>
+        </tr>
+        <tr>
+          <td>DXY</td>
+          <td class="mono">98.76 (unchanged, last available print)</td>
+          <td>Softer dollar makes gold cheaper for non-USD buyers, lifting global demand</td>
+          <td><span class="tag bull">Bullish</span></td>
+        </tr>
+        <tr>
+          <td>US02Y</td>
+          <td class="mono">3.61% (last available print)</td>
+          <td>Fed policy gauge; no fresh same-day print found, holding prior reading</td>
+          <td><span class="tag bear">Minor drag</span></td>
+        </tr>
+        <tr>
+          <td>Central banks</td>
+          <td class="mono">+289t in Q2, record pace</td>
+          <td>Price-insensitive sovereign buying builds a durable floor under spot</td>
+          <td><span class="tag bull">Bullish</span></td>
+        </tr>
+        <tr>
+          <td>Geopolitics</td>
+          <td class="mono">Sharply higher (Iran threat, hawkish FOMC)</td>
+          <td>Safe-haven capital preservation demand, decoupled from rate models — the dominant driver this session</td>
+          <td><span class="tag bull">Bullish</span></td>
+        </tr>
+        <tr>
+          <td>ETF flows (GLD)</td>
+          <td class="mono">+$1.0B single-day, Aug 18</td>
+          <td>Net creations confirm real investment demand behind the price move</td>
+          <td><span class="tag bull">Bullish</span></td>
+        </tr>
+        <tr>
+          <td>COT positioning</td>
+          <td class="mono">100th pct. managed-money longs</td>
+          <td>Crowded speculative length raises pullback risk even within an uptrend</td>
+          <td><span class="tag bear">Caution</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rules">
+    <h2>Reading the board</h2>
+    <ol>
+      <li><b>Real rates (DFII10) are the deepest signal.</b> Nominal yields don't tell the full story — subtract inflation expectations and low or negative real returns are what trigger gold's largest rallies, because they crush the opportunity cost of holding a zero-yield asset.</li>
+      <li><b>US10Y and DXY are the tradeable, daily-moving proxies</b> for that same real-rate story — falling nominal yields and a softer dollar both point the same direction as falling real rates, which is why they're watched tick by tick.</li>
+      <li><b>US02Y is the fast tell on Fed policy,</b> useful for spotting a shift before it shows up in US10Y, but too noisy to call the trend alone.</li>
+      <li><b>Central banks set the floor, not the daily move.</b> Sovereign buyers are price-insensitive — they don't sell into rallies or panic-buy dips — so sustained purchasing (like Poland and China's 2026 pace) supports price even through periods when rates or the dollar turn against gold.</li>
+      <li><b>Geopolitics can override the rate model entirely.</b> When capital preservation demand spikes, gold and the dollar can rally together — that decoupling is itself a signal that fear, not carry math, is driving flow.</li>
+      <li><b>ETF flows confirm whether a move has real money behind it;</b> COT positioning warns when that money has gotten too one-sided. Sustained GLD inflows plus stretched managed-money longs together mean: the trend is real, but a violent pullback is one catalyst away.</li>
+    </ol>
+    <p class="tip">PM update: rule 5 just played out live. Hawkish FOMC minutes pushed US10Y up 6bp — normally a bearish tell — but gold rose 0.40% anyway because Iran-related safe-haven demand dominated the session. This is a textbook case of geopolitics overriding the rate model, and it's now the first entry in the track record below that will show whether that override was justified or a head-fake.</p>
+  </div>
+
+  <p class="section-label">Track Record — Forward Paper-Trading Log</p>
+
+  <div class="scoreboard">
+    <div class="score-tile">
+      <div class="n">1</div>
+      <div class="lbl">Calls scored</div>
+    </div>
+    <div class="score-tile">
+      <div class="n">100%</div>
+      <div class="lbl">Directional hit rate (1/1)</div>
+    </div>
+    <div class="score-tile">
+      <div class="n">100%</div>
+      <div class="lbl">High-conviction hit rate (1/1)</div>
+    </div>
+    <div class="score-tile pending">
+      <div class="n">1</div>
+      <div class="lbl">Calls pending outcome</div>
+    </div>
+  </div>
+
+  <div class="factor-hitrate">
+    <table class="hitrate">
+      <caption>Per-factor hit rate — 1 scored call so far, weights stay neutral until ≥10 observations</caption>
+      <thead>
+        <tr>
+          <th>Factor</th>
+          <th class="mono">Hit rate</th>
+          <th>Current weight</th>
+          <th>Next adjustment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Real rate (DFII10)</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>1/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — needs ≥10 before weight moves</td>
+        </tr>
+        <tr>
+          <td>US10Y</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:0%"></span></span>0/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — called bullish (falling), yield then reversed higher on hawkish FOMC minutes; gold rose anyway on safe-haven flow</td>
+        </tr>
+        <tr>
+          <td>DXY</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>1/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — needs ≥10 before weight moves</td>
+        </tr>
+        <tr>
+          <td>US02Y</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:0%"></span></span>0/1</td>
+          <td><span class="weight-tag">0.5×</span></td>
+          <td>Started low-weight (documented as noisy); 1 obs so far missed too</td>
+        </tr>
+        <tr>
+          <td>Central banks</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>1/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — needs ≥10 before weight moves</td>
+        </tr>
+        <tr>
+          <td>Geopolitics</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>1/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — Iran-driven safe-haven bid was the actual reason gold rose today; early signal this factor may deserve more weight, but far too early to act on</td>
+        </tr>
+        <tr>
+          <td>ETF flows (GLD)</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span>1/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — needs ≥10 before weight moves</td>
+        </tr>
+        <tr>
+          <td>COT positioning</td>
+          <td class="mono"><span class="bar-track"><span class="bar-fill" style="width:0%"></span></span>0/1</td>
+          <td><span class="weight-tag">1.0×</span></td>
+          <td>1 obs — flagged as "caution," but caution ≠ a directional miss by definition; excluded from hit/miss scoring, shown for completeness</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="log-wrap">
+    <table class="log">
+      <caption>Call log — every entry written before its outcome was known, never edited after the fact</caption>
+      <thead>
+        <tr>
+          <th>Logged</th>
+          <th>Gold @ call</th>
+          <th>Composite call</th>
+          <th>Score</th>
+          <th>Gold @ +1 session</th>
+          <th>Move</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">Aug 20, 2026 AM</td>
+          <td class="mono">$4,517.47</td>
+          <td>Bullish, broadly</td>
+          <td class="mono">4B·1C·1M</td>
+          <td class="mono">$4,533.85</td>
+          <td class="mono">+0.36%</td>
+          <td><span class="result-pill hit">Hit</span></td>
+        </tr>
+        <tr>
+          <td class="mono">Aug 20, 2026 PM</td>
+          <td class="mono">$4,533.85</td>
+          <td>Mixed</td>
+          <td class="mono">2B·2C·1M</td>
+          <td class="mono">—</td>
+          <td class="mono">—</td>
+          <td><span class="result-pill pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="log-note">
+    <b>How this improves the model:</b> each scheduled refresh does two things in order — first it scores the previous still-pending row against gold's actual move since that call (hit = price moved the called direction; miss = it didn't or reversed), then it logs a new row for the current read. Once roughly 15–20 calls are scored, the per-factor hit-rate table above stops being placeholders: any factor whose bullish/bearish votes tracked real moves gets its weight nudged up, any factor that didn't (a real risk — geopolitics and COT are the least mechanical of the six) gets nudged down, and the composite score is recomputed from those measured weights instead of equal weighting. The scoreboard also tracks whether high-conviction calls ("bullish, broadly") actually hit more often than mixed ones — if not, the confidence labels themselves get recalibrated, not just the factor weights.
+  </p>
+
+  <footer>
+    Manual snapshot for Aug 20, 2026 PM (post-close read). Live embedded widgets were attempted for this ticker strip but the artifact sandbox blocks third-party iframe embeds (TradingView included) — the four cards above are search-refreshed on the same schedule as the rest of the page, not a browser-live feed. Refresh the rate/dollar tickers daily on TradingView (<code>DFII10</code>, <code>TVC:US10Y</code>, <code>TVC:DXY</code>, <code>TVC:US02Y</code>, <code>XAUUSD</code>); refresh central-bank data quarterly from the World Gold Council's Gold Demand Trends report; refresh ETF flows daily from SPDR's own holdings page; refresh COT positioning weekly from the CFTC report (released Fridays for the prior Tuesday). Correlation logic is directional guidance, not a trading signal — any single factor, especially geopolitics, can override the rest without warning. The track record below is a live, unedited paper-trading log, not a historical backtest — every entry is a real forward prediction made before its outcome was known.
+  </footer>
+
+</div>
+</body>
+</html>
