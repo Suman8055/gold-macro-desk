@@ -1161,7 +1161,23 @@
     }
   }
 
+  // Shared across both buttons: they hit the same rate-limited free proxy, so firing
+  // "Refresh live tickers" and "Log now" back-to-back makes failures more likely for both.
+  var COOLDOWN_MS = 10000;
+  var lastFetchAt = 0;
+
+  function cooldownRemaining() {
+    return Math.max(0, COOLDOWN_MS - (Date.now() - lastFetchAt));
+  }
+
   window.refreshLiveTickers = function () {
+    var remaining = cooldownRemaining();
+    if (remaining > 0) {
+      setStatus('Just used the data source — wait ' + Math.ceil(remaining / 1000) + 's before refreshing again', 'err');
+      return;
+    }
+    lastFetchAt = Date.now();
+
     var toFetch = TICKERS.filter(function (t) { return pendingIds.indexOf(t.id) !== -1; });
     if (!toFetch.length) {
       pendingIds = TICKERS.map(function (t) { return t.id; }); // everything succeeded last time — refresh all again
@@ -1266,6 +1282,13 @@
   }
 
   window.logCallNow = function () {
+    var remaining = cooldownRemaining();
+    if (remaining > 0) {
+      setLogStatus('Just used the data source — wait ' + Math.ceil(remaining / 1000) + 's before logging again', 'err');
+      return;
+    }
+    lastFetchAt = Date.now();
+
     setLogBtnBusy(true);
     setLogStatus('Fetching live gold price…');
 
